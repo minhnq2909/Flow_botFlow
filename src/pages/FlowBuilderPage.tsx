@@ -33,6 +33,8 @@ export const FlowBuilderPage = () => {
           onFlowNameChange={flow.setFlowName}
           onBuild={handleBuild}
           onClear={flow.clearFlow}
+          onDeleteSelected={flow.deleteSelected}
+          selectedItemCount={flow.selectedItemCount}
         />
 
         {flow.message ? (

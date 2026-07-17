@@ -4,6 +4,7 @@ import {
   Controls,
   MiniMap,
   ReactFlow,
+  SelectionMode,
   type OnConnect,
   type OnEdgesChange,
   type OnNodesChange,
@@ -86,6 +87,9 @@ export const FlowCanvas = ({
         onConnect={onConnect}
         onNodeClick={(_, node) => onSelectNode(node.id)}
         onPaneClick={() => onSelectNode(null)}
+        panOnDrag={[1, 2]}
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
         fitView
         deleteKeyCode={['Backspace', 'Delete']}
       >

@@ -59,6 +59,10 @@ export const useFlowBuilder = () => {
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId],
   );
+  const selectedItemCount = useMemo(
+    () => nodes.filter((node) => node.selected).length + edges.filter((edge) => edge.selected).length,
+    [edges, nodes],
+  );
 
   const onNodesChange = useCallback((changes: NodeChange<BotFlowNode>[]) => {
     const removedNodeIds = changes
@@ -112,10 +116,21 @@ export const useFlowBuilder = () => {
   }, []);
 
   const deleteSelected = useCallback(() => {
-    setNodes((currentNodes) => currentNodes.filter((node) => !node.selected));
-    setEdges((currentEdges) => currentEdges.filter((edge) => !edge.selected));
+    const selectedNodeIds = new Set(nodes.filter((node) => node.selected).map((node) => node.id));
+
+    if (selectedNodeIds.size === 0 && !edges.some((edge) => edge.selected)) {
+      return;
+    }
+
+    setNodes((currentNodes) => currentNodes.filter((node) => !selectedNodeIds.has(node.id)));
+    setEdges((currentEdges) =>
+      currentEdges.filter(
+        (edge) =>
+          !edge.selected && !selectedNodeIds.has(edge.source) && !selectedNodeIds.has(edge.target),
+      ),
+    );
     setSelectedNodeId(null);
-  }, []);
+  }, [edges, nodes]);
 
   const clearFlow = useCallback(() => {
     if (!window.confirm('Clear toàn bộ flow hiện tại?')) return;
@@ -204,6 +219,7 @@ export const useFlowBuilder = () => {
     edges,
     selectedNode,
     selectedNodeId,
+    selectedItemCount,
     setSelectedNodeId,
     message,
     setMessage,
