@@ -88,4 +88,3 @@ JSON build ra gồm `version`, thông tin `flow`, danh sách runtime `nodes`, `c
 - Body của POST, PUT, PATCH phải là JSON hợp lệ nếu không rỗng.
 - Edge không được tự nối, không trỏ tới node không tồn tại.
 - Cảnh báo node không thể đi tới từ Start hoặc không thể dẫn tới End.
-

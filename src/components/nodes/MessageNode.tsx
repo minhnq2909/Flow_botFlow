@@ -1,5 +1,8 @@
 import type { NodeProps } from '@xyflow/react';
-import type { BotFlowNode, MessageNodeConfig } from '../../features/flow-builder/flow-builder.types';
+import type {
+  BotFlowNode,
+  MessageNodeConfig,
+} from '../../features/flow-builder/flow-builder.types';
 import { BaseNode } from './BaseNode';
 
 export const MessageNode = (props: NodeProps<BotFlowNode>) => {

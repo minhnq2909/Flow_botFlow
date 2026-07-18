@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "format": "prettier --write ."
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "typecheck": "tsc -b --noEmit",
+    "build": "tsc -b && vite build",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@xyflow/react": "^12.8.2",
@@ -29,6 +33,7 @@
     "globals": "^15.14.0",
     "postcss": "^8.4.49",
     "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.18.2",

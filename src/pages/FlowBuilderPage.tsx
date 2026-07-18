@@ -41,7 +41,12 @@ export const FlowBuilderPage = () => {
           <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
             <AlertCircle size={16} />
             <span>{flow.message}</span>
-            <Button className="ml-auto h-8 px-2" variant="ghost" onClick={() => flow.setMessage(null)} title="Dismiss">
+            <Button
+              className="ml-auto h-8 px-2"
+              variant="ghost"
+              onClick={() => flow.setMessage(null)}
+              title="Dismiss"
+            >
               <X size={16} />
             </Button>
           </div>
@@ -58,12 +63,20 @@ export const FlowBuilderPage = () => {
             onAddNode={flow.addNode}
             onSelectNode={flow.setSelectedNodeId}
           />
-          <PropertiesPanel selectedNode={flow.selectedNode} onUpdateConfig={flow.updateNodeConfig} />
+          <PropertiesPanel
+            selectedNode={flow.selectedNode}
+            onUpdateConfig={flow.updateNodeConfig}
+          />
         </div>
 
-        {builtJson ? <JsonPreviewModal json={builtJson} onClose={() => setBuiltJson(null)} /> : null}
+        {builtJson ? (
+          <JsonPreviewModal json={builtJson} onClose={() => setBuiltJson(null)} />
+        ) : null}
         {validationErrors.length > 0 ? (
-          <ValidationErrorsModal errors={validationErrors} onClose={() => setValidationErrors([])} />
+          <ValidationErrorsModal
+            errors={validationErrors}
+            onClose={() => setValidationErrors([])}
+          />
         ) : null}
       </div>
     </ReactFlowProvider>

@@ -21,7 +21,10 @@ export const ValidationErrorsModal = ({ errors, onClose }: ValidationErrorsModal
   >
     <ul className="grid gap-2 text-sm text-slate-700">
       {errors.map((error) => (
-        <li key={`${error.code}-${error.nodeId ?? error.edgeId ?? error.message}`} className="rounded-md bg-red-50 p-3 text-red-800">
+        <li
+          key={`${error.code}-${error.nodeId ?? error.edgeId ?? error.message}`}
+          className="rounded-md bg-red-50 p-3 text-red-800"
+        >
           {error.message}
         </li>
       ))}

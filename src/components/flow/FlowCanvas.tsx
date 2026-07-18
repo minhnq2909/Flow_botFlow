@@ -11,7 +11,11 @@ import {
   type NodeTypes,
   useReactFlow,
 } from '@xyflow/react';
-import type { BotFlowEdge, BotFlowNode, BotNodeType } from '../../features/flow-builder/flow-builder.types';
+import type {
+  BotFlowEdge,
+  BotFlowNode,
+  BotNodeType,
+} from '../../features/flow-builder/flow-builder.types';
 import { NODE_COLORS } from '../../features/flow-builder/flow-builder.constants';
 import { StartNode } from '../nodes/StartNode';
 import { MessageNode } from '../nodes/MessageNode';

@@ -2,12 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 
 export type BotNodeType = 'start' | 'message' | 'condition' | 'api_request' | 'end';
 
-export type ConditionOperator =
-  | 'equals'
-  | 'not_equals'
-  | 'contains'
-  | 'greater_than'
-  | 'less_than';
+export type ConditionOperator = 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -40,11 +35,7 @@ export type EndNodeConfig = {
 };
 
 export type BotNodeConfig =
-  | StartNodeConfig
-  | MessageNodeConfig
-  | ConditionNodeConfig
-  | ApiRequestNodeConfig
-  | EndNodeConfig;
+  StartNodeConfig | MessageNodeConfig | ConditionNodeConfig | ApiRequestNodeConfig | EndNodeConfig;
 
 export type BotNodeData = {
   label: string;

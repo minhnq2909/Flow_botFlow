@@ -15,7 +15,11 @@ import type {
 } from '../features/flow-builder/flow-builder.types';
 import { buildFlowJson } from '../features/flow-builder/flow-json-builder';
 import { validateFlow } from '../features/flow-builder/flow-validator';
-import { createBotNode, createId, wouldCreateCycle } from '../features/flow-builder/flow-builder.utils';
+import {
+  createBotNode,
+  createId,
+  wouldCreateCycle,
+} from '../features/flow-builder/flow-builder.utils';
 
 const STORAGE_KEY = 'bot-flow-builder-state';
 
@@ -60,7 +64,8 @@ export const useFlowBuilder = () => {
     [nodes, selectedNodeId],
   );
   const selectedItemCount = useMemo(
-    () => nodes.filter((node) => node.selected).length + edges.filter((edge) => edge.selected).length,
+    () =>
+      nodes.filter((node) => node.selected).length + edges.filter((edge) => edge.selected).length,
     [edges, nodes],
   );
 

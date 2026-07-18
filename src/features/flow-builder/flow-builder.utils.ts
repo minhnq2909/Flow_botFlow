@@ -11,7 +11,10 @@ export const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'bot-flow';
 
-export const createBotNode = (type: BotNodeType, position: { x: number; y: number }): BotFlowNode => {
+export const createBotNode = (
+  type: BotNodeType,
+  position: { x: number; y: number },
+): BotFlowNode => {
   const config = createDefaultConfig(type);
   const idPrefix = type === 'api_request' ? 'api' : type;
 
@@ -27,11 +30,7 @@ export const createBotNode = (type: BotNodeType, position: { x: number; y: numbe
   };
 };
 
-export const wouldCreateCycle = (
-  edges: BotFlowEdge[],
-  source: string,
-  target: string,
-): boolean => {
+export const wouldCreateCycle = (edges: BotFlowEdge[], source: string, target: string): boolean => {
   const adjacency = new Map<string, string[]>();
 
   [...edges, { id: 'candidate', source, target }].forEach((edge) => {

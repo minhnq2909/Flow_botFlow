@@ -7,7 +7,10 @@ import type {
   MessageNodeConfig,
   StartNodeConfig,
 } from '../../features/flow-builder/flow-builder.types';
-import { CONDITION_OPERATORS, HTTP_METHODS } from '../../features/flow-builder/flow-builder.constants';
+import {
+  CONDITION_OPERATORS,
+  HTTP_METHODS,
+} from '../../features/flow-builder/flow-builder.constants';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Textarea } from '../common/Textarea';
@@ -37,14 +40,24 @@ export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPane
   const renderFields = () => {
     if (selectedNode.data.botType === 'start') {
       const config = selectedNode.data.config as StartNodeConfig;
-      return <Input label="Node name" value={config.name} onChange={(event) => update({ name: event.target.value })} />;
+      return (
+        <Input
+          label="Node name"
+          value={config.name}
+          onChange={(event) => update({ name: event.target.value })}
+        />
+      );
     }
 
     if (selectedNode.data.botType === 'message') {
       const config = selectedNode.data.config as MessageNodeConfig;
       return (
         <>
-          <Input label="Node name" value={config.name} onChange={(event) => update({ name: event.target.value })} />
+          <Input
+            label="Node name"
+            value={config.name}
+            onChange={(event) => update({ name: event.target.value })}
+          />
           <Textarea
             label="Message content"
             value={config.content}
@@ -59,15 +72,29 @@ export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPane
       const config = selectedNode.data.config as ConditionNodeConfig;
       return (
         <>
-          <Input label="Node name" value={config.name} onChange={(event) => update({ name: event.target.value })} />
-          <Input label="Variable" value={config.variable} onChange={(event) => update({ variable: event.target.value })} />
+          <Input
+            label="Node name"
+            value={config.name}
+            onChange={(event) => update({ name: event.target.value })}
+          />
+          <Input
+            label="Variable"
+            value={config.variable}
+            onChange={(event) => update({ variable: event.target.value })}
+          />
           <Select
             label="Operator"
             options={[...CONDITION_OPERATORS]}
             value={config.operator}
-            onChange={(event) => update({ operator: event.target.value as ConditionNodeConfig['operator'] })}
+            onChange={(event) =>
+              update({ operator: event.target.value as ConditionNodeConfig['operator'] })
+            }
           />
-          <Input label="Compare value" value={config.value} onChange={(event) => update({ value: event.target.value })} />
+          <Input
+            label="Compare value"
+            value={config.value}
+            onChange={(event) => update({ value: event.target.value })}
+          />
         </>
       );
     }
@@ -76,15 +103,30 @@ export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPane
       const config = selectedNode.data.config as ApiRequestNodeConfig;
       return (
         <>
-          <Input label="Node name" value={config.name} onChange={(event) => update({ name: event.target.value })} />
+          <Input
+            label="Node name"
+            value={config.name}
+            onChange={(event) => update({ name: event.target.value })}
+          />
           <Select
             label="HTTP method"
             options={[...HTTP_METHODS]}
             value={config.method}
-            onChange={(event) => update({ method: event.target.value as ApiRequestNodeConfig['method'] })}
+            onChange={(event) =>
+              update({ method: event.target.value as ApiRequestNodeConfig['method'] })
+            }
           />
-          <Input label="URL" value={config.url} placeholder="https://api.example.com" onChange={(event) => update({ url: event.target.value })} />
-          <Textarea label="Request body" value={config.body} onChange={(event) => update({ body: event.target.value })} />
+          <Input
+            label="URL"
+            value={config.url}
+            placeholder="https://api.example.com"
+            onChange={(event) => update({ url: event.target.value })}
+          />
+          <Textarea
+            label="Request body"
+            value={config.body}
+            onChange={(event) => update({ body: event.target.value })}
+          />
           <Input
             label="Response variable"
             value={config.responseVariable}
@@ -95,7 +137,13 @@ export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPane
     }
 
     const config = selectedNode.data.config as EndNodeConfig;
-    return <Input label="Node name" value={config.name} onChange={(event) => update({ name: event.target.value })} />;
+    return (
+      <Input
+        label="Node name"
+        value={config.name}
+        onChange={(event) => update({ name: event.target.value })}
+      />
+    );
   };
 
   return (

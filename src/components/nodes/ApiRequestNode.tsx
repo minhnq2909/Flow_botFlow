@@ -1,5 +1,8 @@
 import type { NodeProps } from '@xyflow/react';
-import type { ApiRequestNodeConfig, BotFlowNode } from '../../features/flow-builder/flow-builder.types';
+import type {
+  ApiRequestNodeConfig,
+  BotFlowNode,
+} from '../../features/flow-builder/flow-builder.types';
 import { BaseNode } from './BaseNode';
 
 export const ApiRequestNode = (props: NodeProps<BotFlowNode>) => {
