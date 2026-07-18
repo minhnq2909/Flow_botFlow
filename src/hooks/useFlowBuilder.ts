@@ -21,7 +21,8 @@ import {
   wouldCreateCycle,
 } from '../features/flow-builder/flow-builder.utils';
 
-const STORAGE_KEY = 'bot-flow-builder-state';
+const STORAGE_KEY = 'flow-bot-builder-state';
+const LEGACY_STORAGE_KEY = 'bot-flow-builder-state';
 
 type StoredFlow = {
   flowName: string;
@@ -31,7 +32,7 @@ type StoredFlow = {
 
 const readStoredFlow = (): StoredFlow | null => {
   try {
-    const value = localStorage.getItem(STORAGE_KEY);
+    const value = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     return value ? (JSON.parse(value) as StoredFlow) : null;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -143,6 +144,7 @@ export const useFlowBuilder = () => {
     setEdges([]);
     setSelectedNodeId(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   }, []);
 
   const connectNodes = useCallback(

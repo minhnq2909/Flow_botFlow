@@ -20,7 +20,7 @@ export const FlowToolbar = ({
   selectedItemCount,
 }: FlowToolbarProps) => (
   <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-4">
-    <h1 className="w-56 text-lg font-bold text-ink">Bot Flow Builder</h1>
+    <h1 className="w-56 text-lg font-bold text-ink">Flow Bot Builder</h1>
     <div className="w-80">
       <Input
         aria-label="Flow name"

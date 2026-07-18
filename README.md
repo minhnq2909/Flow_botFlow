@@ -1,6 +1,6 @@
-# Bot Flow Builder
+# Flow Bot Builder
 
-Bot Flow Builder là MVP SPA cho phép thiết kế kịch bản chatbot bằng cách kéo thả node, nối node trên canvas, cấu hình từng node và xuất flow thành JSON.
+Flow Bot Builder là MVP SPA cho phép thiết kế kịch bản chatbot bằng cách kéo thả node, nối node trên canvas, cấu hình từng node và xuất flow thành JSON.
 
 ## Tính năng
 
