@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, PanelLeftOpen, PanelRightOpen, X } from 'lucide-react';
 import { FlowCanvas } from '../components/flow/FlowCanvas';
 import { FlowToolbar } from '../components/flow/FlowToolbar';
 import { JsonPreviewModal } from '../components/flow/JsonPreviewModal';
@@ -15,6 +15,8 @@ export const FlowBuilderPage = () => {
   const flow = useFlowBuilder();
   const [builtJson, setBuiltJson] = useState<BuiltFlowJson | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [isNodePaletteOpen, setIsNodePaletteOpen] = useState(true);
+  const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
 
   const handleBuild = () => {
     const result = flow.build();
@@ -52,8 +54,21 @@ export const FlowBuilderPage = () => {
           </div>
         ) : null}
 
-        <div className="flex min-h-0 flex-1">
-          <NodePalette />
+        <div className="relative flex min-h-0 flex-1">
+          {isNodePaletteOpen ? (
+            <NodePalette onCollapse={() => setIsNodePaletteOpen(false)} />
+          ) : (
+            <Button
+              className="absolute left-3 top-3 z-10 h-10 border-slate-300 bg-white px-3 shadow-md"
+              variant="secondary"
+              onClick={() => setIsNodePaletteOpen(true)}
+              title="Show node palette"
+              aria-label="Show node palette"
+            >
+              <PanelLeftOpen size={16} />
+              Nodes
+            </Button>
+          )}
           <FlowCanvas
             nodes={flow.nodes}
             edges={flow.edges}
@@ -63,10 +78,24 @@ export const FlowBuilderPage = () => {
             onAddNode={flow.addNode}
             onSelectNode={flow.setSelectedNodeId}
           />
-          <PropertiesPanel
-            selectedNode={flow.selectedNode}
-            onUpdateConfig={flow.updateNodeConfig}
-          />
+          {isPropertiesPanelOpen ? (
+            <PropertiesPanel
+              selectedNode={flow.selectedNode}
+              onUpdateConfig={flow.updateNodeConfig}
+              onCollapse={() => setIsPropertiesPanelOpen(false)}
+            />
+          ) : (
+            <Button
+              className="absolute right-3 top-3 z-10 h-10 border-slate-300 bg-white px-3 shadow-md"
+              variant="secondary"
+              onClick={() => setIsPropertiesPanelOpen(true)}
+              title="Show properties"
+              aria-label="Show properties"
+            >
+              <PanelRightOpen size={16} />
+              Properties
+            </Button>
+          )}
         </div>
 
         {builtJson ? (

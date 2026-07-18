@@ -1,3 +1,4 @@
+import { PanelRightClose } from 'lucide-react';
 import type {
   ApiRequestNodeConfig,
   BotFlowNode,
@@ -14,17 +15,39 @@ import {
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Textarea } from '../common/Textarea';
+import { Button } from '../common/Button';
 
 type PropertiesPanelProps = {
   selectedNode: BotFlowNode | null;
   onUpdateConfig: (nodeId: string, config: BotNodeConfig) => void;
+  onCollapse: () => void;
 };
 
-export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPanelProps) => {
+export const PropertiesPanel = ({
+  selectedNode,
+  onUpdateConfig,
+  onCollapse,
+}: PropertiesPanelProps) => {
+  const header = (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Properties</h2>
+      <Button
+        className="h-8 border-slate-300 px-2 text-xs"
+        variant="secondary"
+        onClick={onCollapse}
+        title="Hide properties"
+        aria-label="Hide properties"
+      >
+        <PanelRightClose size={16} />
+        Ẩn
+      </Button>
+    </div>
+  );
+
   if (!selectedNode) {
     return (
       <aside className="w-80 shrink-0 border-l border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Properties</h2>
+        {header}
         <div className="mt-6 rounded-lg border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-600">
           Chọn một node trên canvas để chỉnh cấu hình. Có thể nhấn Delete hoặc Backspace để xóa
           node/edge đang chọn.
@@ -148,7 +171,7 @@ export const PropertiesPanel = ({ selectedNode, onUpdateConfig }: PropertiesPane
 
   return (
     <aside className="w-80 shrink-0 overflow-auto border-l border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Properties</h2>
+      {header}
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
         <p className="font-semibold text-slate-800">{selectedNode.id}</p>
         <p>{selectedNode.data.botType.replace('_', ' ')}</p>

@@ -1,9 +1,25 @@
+import { PanelLeftClose } from 'lucide-react';
 import { NODE_PALETTE } from '../../features/flow-builder/flow-builder.constants';
+import { Button } from '../common/Button';
 
-export const NodePalette = () => (
+type NodePaletteProps = {
+  onCollapse: () => void;
+};
+
+export const NodePalette = ({ onCollapse }: NodePaletteProps) => (
   <aside className="w-72 shrink-0 border-r border-slate-200 bg-white p-4">
-    <div className="mb-4">
+    <div className="mb-4 flex items-center justify-between gap-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Node Palette</h2>
+      <Button
+        className="h-8 border-slate-300 px-2 text-xs"
+        variant="secondary"
+        onClick={onCollapse}
+        title="Hide node palette"
+        aria-label="Hide node palette"
+      >
+        <PanelLeftClose size={16} />
+        Ẩn
+      </Button>
     </div>
     <div className="grid gap-3">
       {NODE_PALETTE.map((item) => {
