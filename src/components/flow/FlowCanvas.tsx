@@ -15,12 +15,14 @@ import type {
   BotFlowEdge,
   BotFlowNode,
   BotNodeType,
+  NodeExecutionState,
 } from '../../features/flow-builder/flow-builder.types';
 import { NODE_COLORS } from '../../features/flow-builder/flow-builder.constants';
-import { StartNode } from '../nodes/StartNode';
-import { MessageNode } from '../nodes/MessageNode';
-import { ConditionNode } from '../nodes/ConditionNode';
-import { ApiRequestNode } from '../nodes/ApiRequestNode';
+import { BeginNode } from '../nodes/BeginNode';
+import { RetrievalNode } from '../nodes/RetrievalNode';
+import { WebSearchNode } from '../nodes/WebSearchNode';
+import { LlmNode } from '../nodes/LlmNode';
+import { AnswerNode } from '../nodes/AnswerNode';
 import { EndNode } from '../nodes/EndNode';
 
 type FlowCanvasProps = {
@@ -31,13 +33,15 @@ type FlowCanvasProps = {
   onConnect: OnConnect;
   onAddNode: (type: BotNodeType, position: { x: number; y: number }) => void;
   onSelectNode: (nodeId: string | null) => void;
+  nodeExecutions?: Record<string, NodeExecutionState>;
 };
 
 const nodeTypes: NodeTypes = {
-  start: StartNode,
-  message: MessageNode,
-  condition: ConditionNode,
-  api_request: ApiRequestNode,
+  begin: BeginNode,
+  retrieval: RetrievalNode,
+  web_search: WebSearchNode,
+  llm: LlmNode,
+  answer: AnswerNode,
   end: EndNode,
 };
 
@@ -49,17 +53,22 @@ export const FlowCanvas = ({
   onConnect,
   onAddNode,
   onSelectNode,
+  nodeExecutions = {},
 }: FlowCanvasProps) => {
   const reactFlow = useReactFlow<BotFlowNode, BotFlowEdge>();
   const coloredNodes = useMemo(
     () =>
       nodes.map((node) => ({
         ...node,
+        data: {
+          ...node.data,
+          execution: nodeExecutions[node.id],
+        },
         style: {
           ...node.style,
         },
       })),
-    [nodes],
+    [nodeExecutions, nodes],
   );
 
   const onDrop = useCallback(

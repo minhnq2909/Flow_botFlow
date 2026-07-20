@@ -1,5 +1,5 @@
 import type { BotFlowEdge, BotFlowNode, BotNodeType } from './flow-builder.types';
-import { createDefaultConfig } from './flow-builder.constants';
+import { NODE_LABELS, createDefaultConfig } from './flow-builder.constants';
 
 export const createId = (prefix: string) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -16,14 +16,14 @@ export const createBotNode = (
   position: { x: number; y: number },
 ): BotFlowNode => {
   const config = createDefaultConfig(type);
-  const idPrefix = type === 'api_request' ? 'api' : type;
+  const idPrefix = type === 'web_search' ? 'web-search' : type;
 
   return {
     id: createId(idPrefix),
     type,
     position,
     data: {
-      label: config.name,
+      label: NODE_LABELS[type],
       botType: type,
       config,
     },

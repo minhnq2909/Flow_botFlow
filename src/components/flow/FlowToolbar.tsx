@@ -1,4 +1,4 @@
-import { Hammer, MousePointer2, Trash2 } from 'lucide-react';
+import { Download, Hammer, MousePointer2, PlayCircle, Trash2, Upload } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 
@@ -6,6 +6,9 @@ type FlowToolbarProps = {
   flowName: string;
   onFlowNameChange: (value: string) => void;
   onBuild: () => void;
+  onExportWorkflow: () => void;
+  onImportWorkflow: () => void;
+  onRunWorkflow: () => void;
   onClear: () => void;
   onDeleteSelected: () => void;
   selectedItemCount: number;
@@ -15,6 +18,9 @@ export const FlowToolbar = ({
   flowName,
   onFlowNameChange,
   onBuild,
+  onExportWorkflow,
+  onImportWorkflow,
+  onRunWorkflow,
   onClear,
   onDeleteSelected,
   selectedItemCount,
@@ -38,6 +44,15 @@ export const FlowToolbar = ({
         disabled={selectedItemCount === 0}
       >
         Delete Selected{selectedItemCount > 0 ? ` (${selectedItemCount})` : ''}
+      </Button>
+      <Button variant="secondary" onClick={onImportWorkflow} icon={<Upload size={16} />}>
+        Import
+      </Button>
+      <Button variant="secondary" onClick={onExportWorkflow} icon={<Download size={16} />}>
+        Export
+      </Button>
+      <Button variant="secondary" onClick={onRunWorkflow} icon={<PlayCircle size={16} />}>
+        Run
       </Button>
       <Button variant="danger" onClick={onClear} icon={<Trash2 size={16} />} title="Clear Flow">
         Clear Flow

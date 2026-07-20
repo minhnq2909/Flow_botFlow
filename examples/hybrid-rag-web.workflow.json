@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "workflow": {
+    "schemaVersion": "1.0",
+    "id": "hybrid-rag-web",
+    "name": "Hybrid RAG and Web",
+    "version": 1,
+    "nodes": [
+      {
+        "id": "begin-1",
+        "type": "begin",
+        "label": "Begin",
+        "config": {
+          "type": "begin",
+          "data": { "variables": [{ "name": "query", "dataType": "string", "required": true }] }
+        }
+      },
+      {
+        "id": "retrieval-1",
+        "type": "retrieval",
+        "label": "Knowledge Retrieval",
+        "config": {
+          "type": "retrieval",
+          "data": {
+            "provider": "openai_vector_store",
+            "knowledgeBaseId": "kb_123",
+            "queryTemplate": "{{query}}",
+            "maxResults": 5,
+            "scoreThreshold": 0.4
+          }
+        }
+      },
+      {
+        "id": "web-search-1",
+        "type": "web_search",
+        "label": "Web Search",
+        "config": {
+          "type": "web_search",
+          "data": {
+            "provider": "openai",
+            "modelId": "gpt-4.1-mini",
+            "queryTemplate": "{{query}}",
+            "maxSources": 8,
+            "allowedDomains": []
+          }
+        }
+      },
+      {
+        "id": "llm-1",
+        "type": "llm",
+        "label": "LLM",
+        "config": {
+          "type": "llm",
+          "data": {
+            "provider": "openai",
+            "modelId": "gpt-4.1-mini",
+            "systemPrompt": "Answer using the supplied internal and web context. Clearly distinguish internal sources from web sources.",
+            "userPromptTemplate": "Question:\n{{query}}\n\nInternal documents:\n{{retrieval-1.context}}\n\nWeb search:\n{{web-search-1.context}}",
+            "temperature": 0.2,
+            "maxOutputTokens": 700
+          }
+        }
+      },
+      {
+        "id": "answer-1",
+        "type": "answer",
+        "label": "Answer",
+        "config": { "type": "answer", "data": { "template": "{{llm-1.text}}" } }
+      },
+      {
+        "id": "end-1",
+        "type": "end",
+        "label": "End",
+        "config": { "type": "end", "data": { "outputVariable": "answer-1.text" } }
+      }
+    ],
+    "edges": [
+      { "id": "edge-1", "source": "begin-1", "target": "retrieval-1" },
+      { "id": "edge-2", "source": "begin-1", "target": "web-search-1" },
+      { "id": "edge-3", "source": "retrieval-1", "target": "llm-1" },
+      { "id": "edge-4", "source": "web-search-1", "target": "llm-1" },
+      { "id": "edge-5", "source": "llm-1", "target": "answer-1" },
+      { "id": "edge-6", "source": "answer-1", "target": "end-1" }
+    ]
+  }
+}

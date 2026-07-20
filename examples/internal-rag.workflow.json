@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "workflow": {
+    "schemaVersion": "1.0",
+    "id": "internal-rag",
+    "name": "Internal RAG",
+    "version": 1,
+    "nodes": [
+      {
+        "id": "begin-1",
+        "type": "begin",
+        "label": "Begin",
+        "config": {
+          "type": "begin",
+          "data": { "variables": [{ "name": "query", "dataType": "string", "required": true }] }
+        }
+      },
+      {
+        "id": "retrieval-1",
+        "type": "retrieval",
+        "label": "Knowledge Retrieval",
+        "config": {
+          "type": "retrieval",
+          "data": {
+            "provider": "openai_vector_store",
+            "knowledgeBaseId": "kb_123",
+            "queryTemplate": "{{query}}",
+            "maxResults": 5,
+            "scoreThreshold": 0.4
+          }
+        }
+      },
+      {
+        "id": "llm-1",
+        "type": "llm",
+        "label": "LLM",
+        "config": {
+          "type": "llm",
+          "data": {
+            "provider": "openai",
+            "modelId": "gpt-4.1-mini",
+            "systemPrompt": "Answer only from the supplied internal context.",
+            "userPromptTemplate": "Question:\n{{query}}\n\nInternal context:\n{{retrieval-1.context}}",
+            "temperature": 0.2,
+            "maxOutputTokens": 500
+          }
+        }
+      },
+      {
+        "id": "answer-1",
+        "type": "answer",
+        "label": "Answer",
+        "config": { "type": "answer", "data": { "template": "{{llm-1.text}}" } }
+      },
+      {
+        "id": "end-1",
+        "type": "end",
+        "label": "End",
+        "config": { "type": "end", "data": { "outputVariable": "answer-1.text" } }
+      }
+    ],
+    "edges": [
+      { "id": "edge-1", "source": "begin-1", "target": "retrieval-1" },
+      { "id": "edge-2", "source": "retrieval-1", "target": "llm-1" },
+      { "id": "edge-3", "source": "llm-1", "target": "answer-1" },
+      { "id": "edge-4", "source": "answer-1", "target": "end-1" }
+    ]
+  }
+}

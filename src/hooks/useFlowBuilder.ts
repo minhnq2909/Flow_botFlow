@@ -15,11 +15,17 @@ import type {
 } from '../features/flow-builder/flow-builder.types';
 import { buildFlowJson } from '../features/flow-builder/flow-json-builder';
 import { validateFlow } from '../features/flow-builder/flow-validator';
+import { NODE_LABELS } from '../features/flow-builder/flow-builder.constants';
 import {
   createBotNode,
   createId,
   wouldCreateCycle,
 } from '../features/flow-builder/flow-builder.utils';
+import { migrateStoredFlow } from '../features/workflow/migrations/migrateWorkflow';
+import {
+  deserializeWorkflowDocument,
+  serializeWorkflowDocument,
+} from '../features/workflow/serializers/workflowSerializer';
 
 const STORAGE_KEY = 'flow-bot-builder-state';
 const LEGACY_STORAGE_KEY = 'bot-flow-builder-state';
@@ -50,9 +56,15 @@ export const useFlowBuilder = () => {
   useEffect(() => {
     const stored = readStoredFlow();
     if (stored) {
-      setFlowName(stored.flowName);
-      setNodes(stored.nodes);
-      setEdges(stored.edges);
+      const migrated = migrateStoredFlow(stored);
+      if (!migrated.ok) {
+        setMessage(migrated.message);
+        return;
+      }
+      const canvas = deserializeWorkflowDocument(migrated.workflow);
+      setFlowName(canvas.flowName);
+      setNodes(canvas.nodes);
+      setEdges(canvas.edges);
     }
   }, []);
 
@@ -92,8 +104,8 @@ export const useFlowBuilder = () => {
 
   const addNode = useCallback(
     (type: BotNodeType, position: { x: number; y: number }) => {
-      if (type === 'start' && nodes.some((node) => node.data.botType === 'start')) {
-        setMessage('Mỗi flow chỉ được có tối đa một Start node.');
+      if (type === 'begin' && nodes.some((node) => node.data.botType === 'begin')) {
+        setMessage('Mỗi workflow chỉ được có tối đa một Begin node.');
         return;
       }
 
@@ -112,7 +124,7 @@ export const useFlowBuilder = () => {
               ...node,
               data: {
                 ...node.data,
-                label: config.name,
+                label: NODE_LABELS[config.type],
                 config,
               },
             }
@@ -161,8 +173,8 @@ export const useFlowBuilder = () => {
         setMessage('Node không được tự kết nối với chính nó.');
         return;
       }
-      if (targetNode.data.botType === 'start') {
-        setMessage('Start node không được có input.');
+      if (targetNode.data.botType === 'begin') {
+        setMessage('Begin node không được có input.');
         return;
       }
       if (sourceNode.data.botType === 'end') {
@@ -173,8 +185,7 @@ export const useFlowBuilder = () => {
         setMessage('Kết nối này sẽ tạo cycle trong flow.');
         return;
       }
-      const sourceHandle =
-        sourceNode.data.botType === 'condition' ? connection.sourceHandle : 'output';
+      const sourceHandle = connection.sourceHandle ?? 'output';
       const targetHandle = connection.targetHandle ?? 'input';
       const isDuplicate = edges.some(
         (edge) =>
@@ -195,13 +206,7 @@ export const useFlowBuilder = () => {
             id: createId('edge'),
             sourceHandle,
             targetHandle,
-            label:
-              sourceNode.data.botType === 'condition'
-                ? sourceHandle === 'true'
-                  ? 'True'
-                  : 'False'
-                : undefined,
-            animated: sourceNode.data.botType === 'api_request',
+            animated: sourceNode.data.botType === 'llm' || sourceNode.data.botType === 'web_search',
             type: 'smoothstep',
           },
           currentEdges,
@@ -218,6 +223,24 @@ export const useFlowBuilder = () => {
     }
     return { errors: [], json: buildFlowJson(flowName, nodes, edges) };
   }, [edges, flowName, nodes]);
+
+  const importWorkflow = useCallback((document: unknown) => {
+    const canvas = deserializeWorkflowDocument(document);
+    const errors = validateFlow(canvas.flowName, canvas.nodes, canvas.edges);
+    if (errors.length > 0) {
+      return { ok: false as const, errors };
+    }
+    setFlowName(canvas.flowName);
+    setNodes(canvas.nodes);
+    setEdges(canvas.edges);
+    setSelectedNodeId(null);
+    return { ok: true as const };
+  }, []);
+
+  const exportWorkflow = useCallback(
+    () => serializeWorkflowDocument(flowName, nodes, edges),
+    [edges, flowName, nodes],
+  );
 
   return {
     flowName,
@@ -238,5 +261,7 @@ export const useFlowBuilder = () => {
     clearFlow,
     connectNodes,
     build,
+    importWorkflow,
+    exportWorkflow,
   };
 };

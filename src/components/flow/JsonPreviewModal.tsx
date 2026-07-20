@@ -1,24 +1,13 @@
 import { Check, Copy, Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { BuiltFlowJson } from '../../features/flow-builder/flow-builder.types';
-import { slugify } from '../../features/flow-builder/flow-builder.utils';
+import { downloadWorkflowJson } from '../../features/workflow/serializers/downloadWorkflowJson';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 
 type JsonPreviewModalProps = {
   json: BuiltFlowJson;
   onClose: () => void;
-};
-
-export const downloadJson = (json: BuiltFlowJson) => {
-  const content = JSON.stringify(json, null, 2);
-  const blob = new Blob([content], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${slugify(json.flow.name)}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
 };
 
 export const JsonPreviewModal = ({ json, onClose }: JsonPreviewModalProps) => {
@@ -44,7 +33,7 @@ export const JsonPreviewModal = ({ json, onClose }: JsonPreviewModalProps) => {
             <Button
               variant="primary"
               onClick={() => {
-                downloadJson(json);
+                downloadWorkflowJson(json);
                 setNotice('JSON downloaded.');
               }}
               icon={<Download size={16} />}

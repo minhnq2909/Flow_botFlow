@@ -5,20 +5,33 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "tsx server/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
     "build": "tsc -b && vite build",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@xyflow/react": "^12.8.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "langfuse": "^3.38.20",
     "lucide-react": "^0.468.0",
+    "multer": "^2.2.0",
+    "openai": "^6.48.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tsx": "^4.23.1",
+    "vitest": "^4.1.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

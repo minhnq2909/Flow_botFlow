@@ -1,17 +1,10 @@
 import { PanelRightClose } from 'lucide-react';
 import type {
-  ApiRequestNodeConfig,
   BotFlowNode,
   BotNodeConfig,
-  ConditionNodeConfig,
-  EndNodeConfig,
-  MessageNodeConfig,
-  StartNodeConfig,
+  NodeExecutionState,
 } from '../../features/flow-builder/flow-builder.types';
-import {
-  CONDITION_OPERATORS,
-  HTTP_METHODS,
-} from '../../features/flow-builder/flow-builder.constants';
+import { WORKFLOW_VALUE_TYPES } from '../../features/flow-builder/flow-builder.constants';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Textarea } from '../common/Textarea';
@@ -19,12 +12,14 @@ import { Button } from '../common/Button';
 
 type PropertiesPanelProps = {
   selectedNode: BotFlowNode | null;
+  selectedNodeExecution?: NodeExecutionState;
   onUpdateConfig: (nodeId: string, config: BotNodeConfig) => void;
   onCollapse: () => void;
 };
 
 export const PropertiesPanel = ({
   selectedNode,
+  selectedNodeExecution,
   onUpdateConfig,
   onCollapse,
 }: PropertiesPanelProps) => {
@@ -35,8 +30,6 @@ export const PropertiesPanel = ({
         className="h-8 border-slate-300 px-2 text-xs"
         variant="secondary"
         onClick={onCollapse}
-        title="Hide properties"
-        aria-label="Hide properties"
       >
         <PanelRightClose size={16} />
         Ẩn
@@ -49,134 +42,252 @@ export const PropertiesPanel = ({
       <aside className="w-80 shrink-0 border-l border-slate-200 bg-white p-4">
         {header}
         <div className="mt-6 rounded-lg border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-600">
-          Chọn một node trên canvas để chỉnh cấu hình. Có thể nhấn Delete hoặc Backspace để xóa
-          node/edge đang chọn.
+          Chọn một node trên canvas để chỉnh cấu hình.
         </div>
       </aside>
     );
   }
 
-  const update = (patch: Partial<BotNodeConfig>) => {
-    onUpdateConfig(selectedNode.id, { ...selectedNode.data.config, ...patch } as BotNodeConfig);
-  };
-
-  const renderFields = () => {
-    if (selectedNode.data.botType === 'start') {
-      const config = selectedNode.data.config as StartNodeConfig;
-      return (
-        <Input
-          label="Node name"
-          value={config.name}
-          onChange={(event) => update({ name: event.target.value })}
-        />
-      );
-    }
-
-    if (selectedNode.data.botType === 'message') {
-      const config = selectedNode.data.config as MessageNodeConfig;
-      return (
-        <>
-          <Input
-            label="Node name"
-            value={config.name}
-            onChange={(event) => update({ name: event.target.value })}
-          />
-          <Textarea
-            label="Message content"
-            value={config.content}
-            placeholder="Xin chào {{customerName}}, tôi có thể giúp gì?"
-            onChange={(event) => update({ content: event.target.value })}
-          />
-        </>
-      );
-    }
-
-    if (selectedNode.data.botType === 'condition') {
-      const config = selectedNode.data.config as ConditionNodeConfig;
-      return (
-        <>
-          <Input
-            label="Node name"
-            value={config.name}
-            onChange={(event) => update({ name: event.target.value })}
-          />
-          <Input
-            label="Variable"
-            value={config.variable}
-            onChange={(event) => update({ variable: event.target.value })}
-          />
-          <Select
-            label="Operator"
-            options={[...CONDITION_OPERATORS]}
-            value={config.operator}
-            onChange={(event) =>
-              update({ operator: event.target.value as ConditionNodeConfig['operator'] })
-            }
-          />
-          <Input
-            label="Compare value"
-            value={config.value}
-            onChange={(event) => update({ value: event.target.value })}
-          />
-        </>
-      );
-    }
-
-    if (selectedNode.data.botType === 'api_request') {
-      const config = selectedNode.data.config as ApiRequestNodeConfig;
-      return (
-        <>
-          <Input
-            label="Node name"
-            value={config.name}
-            onChange={(event) => update({ name: event.target.value })}
-          />
-          <Select
-            label="HTTP method"
-            options={[...HTTP_METHODS]}
-            value={config.method}
-            onChange={(event) =>
-              update({ method: event.target.value as ApiRequestNodeConfig['method'] })
-            }
-          />
-          <Input
-            label="URL"
-            value={config.url}
-            placeholder="https://api.example.com"
-            onChange={(event) => update({ url: event.target.value })}
-          />
-          <Textarea
-            label="Request body"
-            value={config.body}
-            onChange={(event) => update({ body: event.target.value })}
-          />
-          <Input
-            label="Response variable"
-            value={config.responseVariable}
-            onChange={(event) => update({ responseVariable: event.target.value })}
-          />
-        </>
-      );
-    }
-
-    const config = selectedNode.data.config as EndNodeConfig;
-    return (
-      <Input
-        label="Node name"
-        value={config.name}
-        onChange={(event) => update({ name: event.target.value })}
-      />
-    );
-  };
+  const updateConfig = (config: BotNodeConfig) => onUpdateConfig(selectedNode.id, config);
+  const config = selectedNode.data.config;
 
   return (
     <aside className="w-80 shrink-0 overflow-auto border-l border-slate-200 bg-white p-4">
       {header}
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
         <p className="font-semibold text-slate-800">{selectedNode.id}</p>
-        <p>{selectedNode.data.botType.replace('_', ' ')}</p>
+        <p>{selectedNode.data.label}</p>
       </div>
-      <div className="mt-5 grid gap-4">{renderFields()}</div>
+      <div className="mt-5 grid gap-4">
+        {config.type === 'begin' ? (
+          <>
+            <Input
+              label="Variable name"
+              value={config.data.variables[0]?.name ?? ''}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'begin',
+                  data: {
+                    variables: [
+                      {
+                        name: event.target.value,
+                        dataType: config.data.variables[0]?.dataType ?? 'string',
+                        required: config.data.variables[0]?.required ?? true,
+                      },
+                    ],
+                  },
+                })
+              }
+            />
+            <Select
+              label="Data type"
+              options={[...WORKFLOW_VALUE_TYPES]}
+              value={config.data.variables[0]?.dataType ?? 'string'}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'begin',
+                  data: {
+                    variables: [
+                      {
+                        name: config.data.variables[0]?.name ?? 'query',
+                        dataType: event.target.value as (typeof WORKFLOW_VALUE_TYPES)[number],
+                        required: true,
+                      },
+                    ],
+                  },
+                })
+              }
+            />
+          </>
+        ) : null}
+
+        {config.type === 'retrieval' ? (
+          <>
+            <Input
+              label="Knowledge Base ID"
+              value={config.data.knowledgeBaseId}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'retrieval',
+                  data: { ...config.data, knowledgeBaseId: event.target.value },
+                })
+              }
+            />
+            <Input
+              label="Query template"
+              value={config.data.queryTemplate}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'retrieval',
+                  data: { ...config.data, queryTemplate: event.target.value },
+                })
+              }
+            />
+            <Input
+              label="Maximum results"
+              type="number"
+              value={String(config.data.maxResults)}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'retrieval',
+                  data: { ...config.data, maxResults: Number(event.target.value) },
+                })
+              }
+            />
+          </>
+        ) : null}
+
+        {config.type === 'web_search' ? (
+          <>
+            <Input
+              label="Model"
+              value={config.data.modelId}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'web_search',
+                  data: { ...config.data, modelId: event.target.value },
+                })
+              }
+            />
+            <Input
+              label="Query template"
+              value={config.data.queryTemplate}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'web_search',
+                  data: { ...config.data, queryTemplate: event.target.value },
+                })
+              }
+            />
+            <Textarea
+              label="Allowed domains"
+              value={(config.data.allowedDomains ?? []).join('\n')}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'web_search',
+                  data: {
+                    ...config.data,
+                    allowedDomains: event.target.value
+                      .split('\n')
+                      .map((domain) => domain.trim())
+                      .filter(Boolean),
+                  },
+                })
+              }
+            />
+          </>
+        ) : null}
+
+        {config.type === 'llm' ? (
+          <>
+            <Input
+              label="Model"
+              value={config.data.modelId}
+              onChange={(event) =>
+                updateConfig({ type: 'llm', data: { ...config.data, modelId: event.target.value } })
+              }
+            />
+            <Textarea
+              label="System prompt"
+              value={config.data.systemPrompt}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'llm',
+                  data: { ...config.data, systemPrompt: event.target.value },
+                })
+              }
+            />
+            <Textarea
+              label="User prompt template"
+              value={config.data.userPromptTemplate}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'llm',
+                  data: { ...config.data, userPromptTemplate: event.target.value },
+                })
+              }
+            />
+          </>
+        ) : null}
+
+        {config.type === 'answer' ? (
+          <Textarea
+            label="Template"
+            value={config.data.template}
+            onChange={(event) =>
+              updateConfig({ type: 'answer', data: { template: event.target.value } })
+            }
+          />
+        ) : null}
+
+        {config.type === 'end' ? (
+          <Input
+            label="Output variable"
+            value={config.data.outputVariable}
+            onChange={(event) =>
+              updateConfig({ type: 'end', data: { outputVariable: event.target.value } })
+            }
+          />
+        ) : null}
+      </div>
+      <NodeExecutionDetail execution={selectedNodeExecution} />
     </aside>
+  );
+};
+
+const formatJson = (value: unknown) => JSON.stringify(value, null, 2);
+
+const NodeExecutionDetail = ({ execution }: { execution?: NodeExecutionState }) => {
+  if (!execution) {
+    return (
+      <section className="mt-6 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+        Chưa có kết quả run cho node này.
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-slate-900">Run result</h3>
+        <span className="rounded bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+          {execution.status}
+        </span>
+      </div>
+      <dl className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+        <div>
+          <dt className="font-semibold text-slate-800">Duration</dt>
+          <dd>{execution.durationMs ?? 0} ms</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-800">Tokens</dt>
+          <dd>{execution.usage?.totalTokens ?? '-'}</dd>
+        </div>
+      </dl>
+      {execution.error ? (
+        <div className="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          <p className="font-semibold">{execution.error.code ?? 'ERROR'}</p>
+          <p>{execution.error.message}</p>
+        </div>
+      ) : null}
+      {execution.output !== undefined ? (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Output
+          </p>
+          <pre className="max-h-80 overflow-auto rounded bg-slate-950 p-3 text-xs leading-5 text-slate-100">
+            {formatJson(execution.output)}
+          </pre>
+        </div>
+      ) : null}
+      {execution.input !== undefined ? (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Input</p>
+          <pre className="max-h-48 overflow-auto rounded bg-white p-3 text-xs leading-5 text-slate-700">
+            {formatJson(execution.input)}
+          </pre>
+        </div>
+      ) : null}
+    </section>
   );
 };

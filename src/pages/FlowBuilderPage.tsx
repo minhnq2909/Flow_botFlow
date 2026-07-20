@@ -8,13 +8,22 @@ import { NodePalette } from '../components/flow/NodePalette';
 import { PropertiesPanel } from '../components/flow/PropertiesPanel';
 import { ValidationErrorsModal } from '../components/flow/ValidationErrorsModal';
 import { useFlowBuilder } from '../hooks/useFlowBuilder';
-import type { BuiltFlowJson, ValidationError } from '../features/flow-builder/flow-builder.types';
+import type {
+  BuiltFlowJson,
+  NodeExecutionState,
+  ValidationError,
+  WorkflowRunResult,
+} from '../features/flow-builder/flow-builder.types';
 import { Button } from '../components/common/Button';
+import { runWorkflow } from '../features/workflow/api/workflowApi';
+import { downloadWorkflowJson } from '../features/workflow/serializers/downloadWorkflowJson';
 
 export const FlowBuilderPage = () => {
   const flow = useFlowBuilder();
   const [builtJson, setBuiltJson] = useState<BuiltFlowJson | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [runResult, setRunResult] = useState<WorkflowRunResult | null>(null);
+  const [nodeExecutions, setNodeExecutions] = useState<Record<string, NodeExecutionState>>({});
   const [isNodePaletteOpen, setIsNodePaletteOpen] = useState(true);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
 
@@ -27,6 +36,64 @@ export const FlowBuilderPage = () => {
     setBuiltJson(result.json);
   };
 
+  const handleExport = () => {
+    downloadWorkflowJson(flow.exportWorkflow());
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const json = JSON.parse(await file.text()) as unknown;
+        const result = flow.importWorkflow(json);
+        if (!result.ok) {
+          setValidationErrors(result.errors);
+          return;
+        }
+        flow.setMessage('Workflow imported.');
+      } catch (error) {
+        flow.setMessage(error instanceof Error ? error.message : 'Import failed.');
+      }
+    };
+    input.click();
+  };
+
+  const handleRun = async () => {
+    setRunResult(null);
+    setNodeExecutions(
+      Object.fromEntries(
+        flow.nodes.map((node) => [node.id, { nodeId: node.id, status: 'queued' as const }]),
+      ),
+    );
+    try {
+      const result = await runWorkflow(flow.exportWorkflow(), {
+        query: window.prompt('Query input', 'What is retrieval-augmented generation?') ?? '',
+      });
+      setRunResult(result);
+      setNodeExecutions(result.nodeExecutions);
+    } catch (error) {
+      flow.setMessage(error instanceof Error ? error.message : 'Workflow run failed.');
+      setNodeExecutions((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([nodeId, execution]) => [
+            nodeId,
+            execution.status === 'queued'
+              ? {
+                  ...execution,
+                  status: 'skipped' as const,
+                  error: { code: 'WORKFLOW_EXECUTION_FAILED', message: 'Run did not complete.' },
+                }
+              : execution,
+          ]),
+        ),
+      );
+    }
+  };
+
   return (
     <ReactFlowProvider>
       <div className="flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-900">
@@ -34,6 +101,9 @@ export const FlowBuilderPage = () => {
           flowName={flow.flowName}
           onFlowNameChange={flow.setFlowName}
           onBuild={handleBuild}
+          onExportWorkflow={handleExport}
+          onImportWorkflow={handleImport}
+          onRunWorkflow={handleRun}
           onClear={flow.clearFlow}
           onDeleteSelected={flow.deleteSelected}
           selectedItemCount={flow.selectedItemCount}
@@ -77,10 +147,14 @@ export const FlowBuilderPage = () => {
             onConnect={flow.connectNodes}
             onAddNode={flow.addNode}
             onSelectNode={flow.setSelectedNodeId}
+            nodeExecutions={nodeExecutions}
           />
           {isPropertiesPanelOpen ? (
             <PropertiesPanel
               selectedNode={flow.selectedNode}
+              selectedNodeExecution={
+                flow.selectedNode ? nodeExecutions[flow.selectedNode.id] : undefined
+              }
               onUpdateConfig={flow.updateNodeConfig}
               onCollapse={() => setIsPropertiesPanelOpen(false)}
             />
@@ -106,6 +180,33 @@ export const FlowBuilderPage = () => {
             errors={validationErrors}
             onClose={() => setValidationErrors([])}
           />
+        ) : null}
+        {runResult ? (
+          <div className="absolute bottom-4 right-4 z-20 w-80 rounded-lg border border-slate-300 bg-white p-4 shadow-panel">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-semibold">Workflow Run</h2>
+              <Button variant="ghost" onClick={() => setRunResult(null)}>
+                Close
+              </Button>
+            </div>
+            <dl className="grid gap-2 text-sm text-slate-700">
+              <div className="flex justify-between gap-4">
+                <dt>Status</dt>
+                <dd className="font-semibold">{runResult.status}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Run ID</dt>
+                <dd className="font-mono text-xs">{runResult.runId}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Trace ID</dt>
+                <dd className="font-mono text-xs">{runResult.traceId ?? '-'}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Click từng node trên canvas để xem output, lỗi, latency và token usage.
+            </p>
+          </div>
         ) : null}
       </div>
     </ReactFlowProvider>
