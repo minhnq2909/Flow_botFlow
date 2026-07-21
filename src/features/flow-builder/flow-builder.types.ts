@@ -19,6 +19,7 @@ export type BeginNodeConfig = {
 export type RetrievalNodeConfig = {
   provider: 'openai_vector_store';
   knowledgeBaseId: string;
+  vectorStoreId?: string;
   queryTemplate: string;
   maxResults: number;
   scoreThreshold?: number;

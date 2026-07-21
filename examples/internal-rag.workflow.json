@@ -23,7 +23,8 @@
           "type": "retrieval",
           "data": {
             "provider": "openai_vector_store",
-            "knowledgeBaseId": "kb_123",
+            "knowledgeBaseId": "",
+            "vectorStoreId": "vs_your_vector_store_id",
             "queryTemplate": "{{query}}",
             "maxResults": 5,
             "scoreThreshold": 0.4
@@ -40,7 +41,7 @@
             "provider": "openai",
             "modelId": "gpt-4.1-mini",
             "systemPrompt": "Answer only from the supplied internal context.",
-            "userPromptTemplate": "Question:\n{{query}}\n\nInternal context:\n{{retrieval-1.context}}",
+            "userPromptTemplate": "Question:\n{{query}}\n\nInternal context:\n{{retrieval.context}}",
             "temperature": 0.2,
             "maxOutputTokens": 500
           }
@@ -50,13 +51,13 @@
         "id": "answer-1",
         "type": "answer",
         "label": "Answer",
-        "config": { "type": "answer", "data": { "template": "{{llm-1.text}}" } }
+        "config": { "type": "answer", "data": { "template": "{{llm.text}}" } }
       },
       {
         "id": "end-1",
         "type": "end",
         "label": "End",
-        "config": { "type": "end", "data": { "outputVariable": "answer-1.text" } }
+        "config": { "type": "end", "data": { "outputVariable": "answer.text" } }
       }
     ],
     "edges": [

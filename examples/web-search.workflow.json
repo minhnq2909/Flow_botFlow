@@ -40,7 +40,7 @@
             "provider": "openai",
             "modelId": "gpt-4.1-mini",
             "systemPrompt": "Use the web context and preserve source attribution. Do not invent sources.",
-            "userPromptTemplate": "Question:\n{{query}}\n\nWeb context:\n{{web-search-1.context}}",
+            "userPromptTemplate": "Question:\n{{query}}\n\nWeb context:\n{{web_search.context}}",
             "temperature": 0.2,
             "maxOutputTokens": 700
           }
@@ -50,13 +50,13 @@
         "id": "answer-1",
         "type": "answer",
         "label": "Answer",
-        "config": { "type": "answer", "data": { "template": "{{llm-1.text}}" } }
+        "config": { "type": "answer", "data": { "template": "{{llm.text}}" } }
       },
       {
         "id": "end-1",
         "type": "end",
         "label": "End",
-        "config": { "type": "end", "data": { "outputVariable": "answer-1.text" } }
+        "config": { "type": "end", "data": { "outputVariable": "answer.text" } }
       }
     ],
     "edges": [

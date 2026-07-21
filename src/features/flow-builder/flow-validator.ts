@@ -52,13 +52,6 @@ export const validateFlow = (
 
     if (node.data.config.type === 'retrieval') {
       const config = node.data.config.data;
-      if (!config.knowledgeBaseId.trim()) {
-        errors.push({
-          code: 'KNOWLEDGE_BASE_NOT_FOUND',
-          message: `Knowledge Retrieval node "${node.id}" chưa chọn Knowledge Base.`,
-          nodeId: node.id,
-        });
-      }
       if (!config.queryTemplate.trim()) {
         errors.push({
           code: 'VARIABLE_NOT_FOUND',

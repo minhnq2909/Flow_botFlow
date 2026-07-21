@@ -11,7 +11,9 @@ export const RetrievalNode = (props: NodeProps<BotFlowNode>) => {
   return (
     <BaseNode {...props}>
       <p className="font-semibold text-blue-700">{config.maxResults} results</p>
-      <p className="line-clamp-2">{config.knowledgeBaseId || 'No knowledge base selected.'}</p>
+      <p className="line-clamp-2">
+        {config.vectorStoreId || config.knowledgeBaseId || 'No vector store selected.'}
+      </p>
     </BaseNode>
   );
 };

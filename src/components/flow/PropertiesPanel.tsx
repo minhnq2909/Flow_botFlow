@@ -1,4 +1,5 @@
-import { PanelRightClose } from 'lucide-react';
+import { useState } from 'react';
+import { Maximize2, PanelRightClose } from 'lucide-react';
 import type {
   BotFlowNode,
   BotNodeConfig,
@@ -9,6 +10,7 @@ import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Textarea } from '../common/Textarea';
 import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
 
 type PropertiesPanelProps = {
   selectedNode: BotFlowNode | null;
@@ -103,6 +105,17 @@ export const PropertiesPanel = ({
 
         {config.type === 'retrieval' ? (
           <>
+            <Input
+              label="OpenAI Vector Store ID"
+              placeholder="Optional if OPENAI_DEFAULT_VECTOR_STORE_ID is set"
+              value={config.data.vectorStoreId ?? ''}
+              onChange={(event) =>
+                updateConfig({
+                  type: 'retrieval',
+                  data: { ...config.data, vectorStoreId: event.target.value },
+                })
+              }
+            />
             <Input
               label="Knowledge Base ID"
               value={config.data.knowledgeBaseId}
@@ -238,6 +251,11 @@ export const PropertiesPanel = ({
 const formatJson = (value: unknown) => JSON.stringify(value, null, 2);
 
 const NodeExecutionDetail = ({ execution }: { execution?: NodeExecutionState }) => {
+  const [expandedValue, setExpandedValue] = useState<{
+    title: string;
+    value: unknown;
+  } | null>(null);
+
   if (!execution) {
     return (
       <section className="mt-6 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600">
@@ -271,23 +289,88 @@ const NodeExecutionDetail = ({ execution }: { execution?: NodeExecutionState }) 
         </div>
       ) : null}
       {execution.output !== undefined ? (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Output
-          </p>
-          <pre className="max-h-80 overflow-auto rounded bg-slate-950 p-3 text-xs leading-5 text-slate-100">
-            {formatJson(execution.output)}
-          </pre>
-        </div>
+        <ExecutionValueViewer
+          title="Output"
+          value={execution.output}
+          variant="dark"
+          onExpand={() => setExpandedValue({ title: 'Output', value: execution.output })}
+        />
       ) : null}
       {execution.input !== undefined ? (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Input</p>
-          <pre className="max-h-48 overflow-auto rounded bg-white p-3 text-xs leading-5 text-slate-700">
-            {formatJson(execution.input)}
-          </pre>
-        </div>
+        <ExecutionValueViewer
+          title="Input"
+          value={execution.input}
+          onExpand={() => setExpandedValue({ title: 'Input', value: execution.input })}
+        />
+      ) : null}
+      {expandedValue ? (
+        <Modal title={expandedValue.title} onClose={() => setExpandedValue(null)}>
+          <ExecutionValueViewer title={expandedValue.title} value={expandedValue.value} expanded />
+        </Modal>
       ) : null}
     </section>
+  );
+};
+
+const pickReadableText = (value: unknown): string | null => {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return null;
+
+  const record = value as Record<string, unknown>;
+  const preferredKeys = ['text', 'output', 'context', 'summary'];
+
+  for (const key of preferredKeys) {
+    if (typeof record[key] === 'string') return record[key];
+  }
+
+  return null;
+};
+
+const ExecutionValueViewer = ({
+  title,
+  value,
+  variant = 'light',
+  expanded = false,
+  onExpand,
+}: {
+  title: string;
+  value: unknown;
+  variant?: 'light' | 'dark';
+  expanded?: boolean;
+  onExpand?: () => void;
+}) => {
+  const readableText = pickReadableText(value);
+  const panelClass =
+    variant === 'dark'
+      ? 'bg-slate-950 text-slate-100'
+      : 'border border-slate-200 bg-white text-slate-700';
+  const heightClass = expanded ? 'max-h-[66vh]' : 'max-h-80';
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+        {onExpand ? (
+          <Button className="h-7 px-2 text-xs" variant="ghost" onClick={onExpand}>
+            <Maximize2 size={14} />
+            View
+          </Button>
+        ) : null}
+      </div>
+
+      {readableText ? (
+        <div
+          className={`${heightClass} overflow-auto whitespace-pre-wrap break-words rounded p-3 text-xs leading-5 ${panelClass}`}
+        >
+          {readableText}
+        </div>
+      ) : null}
+
+      <pre
+        className={`mt-2 ${heightClass} overflow-auto whitespace-pre-wrap break-words rounded p-3 text-xs leading-5 ${panelClass}`}
+      >
+        {formatJson(value)}
+      </pre>
+    </div>
   );
 };

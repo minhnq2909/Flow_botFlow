@@ -9,8 +9,10 @@ import {
 } from './openaiServices';
 import type { KnowledgeBase, WorkflowRunRequest } from './types';
 import { WorkflowEngine } from './workflowEngine';
+import { initializeLangfuseTelemetry, shutdownLangfuseTelemetry } from './langfuseTelemetry';
 
 dotenv.config();
+initializeLangfuseTelemetry();
 
 const app = express();
 const upload = multer({
@@ -134,4 +136,16 @@ const sanitizeError = (error: unknown) =>
 const port = Number(process.env.PORT ?? 8787);
 app.listen(port, () => {
   console.log(`Workflow API listening on http://localhost:${port}`);
+});
+
+const shutdown = async () => {
+  await shutdownLangfuseTelemetry();
+  process.exit(0);
+};
+
+process.once('SIGINT', () => {
+  void shutdown();
+});
+process.once('SIGTERM', () => {
+  void shutdown();
 });

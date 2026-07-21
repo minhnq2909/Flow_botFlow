@@ -1,20 +1,30 @@
+import { observeOpenAI } from '@langfuse/openai';
 import OpenAI from 'openai';
 import type {
   LlmGenerateRequest,
   LlmGenerateResult,
+  LlmService,
   RetrievedDocument,
   VectorStoreService,
   WebSearchResult,
   WebSearchService,
-  LlmService,
 } from './types';
 
-const client = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+let client: OpenAI | null = null;
 
 const requireClient = () => {
-  if (!client) throw new Error('OPENAI_API_KEY is not configured.');
+  if (!client) {
+    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    if (!apiKey) throw new Error('OPENAI_API_KEY is not configured.');
+    client = observeOpenAI(new OpenAI({ apiKey }), {
+      traceName: 'workflow-run',
+      tags: ['workflow-builder'],
+      generationMetadata: {
+        feature: 'workflow-builder',
+        provider: 'openai',
+      },
+    });
+  }
   return client;
 };
 
@@ -36,7 +46,8 @@ export class OpenAiVectorStoreService implements VectorStoreService {
     maxResults: number;
     scoreThreshold?: number;
   }): Promise<RetrievedDocument[]> {
-    const response = await requireClient().vectorStores.search(params.vectorStoreId, {
+    const results = [];
+    const response = requireClient().vectorStores.search(params.vectorStoreId, {
       query: params.query,
       max_num_results: params.maxResults,
       ranking_options:
@@ -45,7 +56,11 @@ export class OpenAiVectorStoreService implements VectorStoreService {
           : { score_threshold: params.scoreThreshold },
     });
 
-    return response.data.map((result, index) => ({
+    for await (const result of response) {
+      results.push(result);
+    }
+
+    return results.map((result, index) => ({
       id: `${result.file_id}-${index}`,
       fileId: result.file_id,
       filename: result.filename ?? undefined,
@@ -54,8 +69,8 @@ export class OpenAiVectorStoreService implements VectorStoreService {
         result.attributes && typeof result.attributes === 'object'
           ? (result.attributes as Record<string, unknown>)
           : undefined,
-      content: result.content
-        .filter((part) => part.type === 'text' && 'text' in part)
+      content: (result.content ?? [])
+        .filter((part) => part.type === 'text' && 'text' in part && typeof part.text === 'string')
         .map((part) => part.text)
         .join('\n'),
     }));

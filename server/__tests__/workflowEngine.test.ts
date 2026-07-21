@@ -28,7 +28,8 @@ const workflow: WorkflowDocument = {
           type: 'retrieval',
           data: {
             provider: 'openai_vector_store',
-            knowledgeBaseId: 'kb_1',
+            knowledgeBaseId: '',
+            vectorStoreId: 'vs_1',
             queryTemplate: '{{query}}',
             maxResults: 3,
           },
@@ -53,7 +54,7 @@ const workflow: WorkflowDocument = {
             provider: 'openai',
             modelId: 'mock-llm',
             systemPrompt: 'system',
-            userPromptTemplate: '{{retrieval-1.context}}\n{{web-search-1.context}}',
+            userPromptTemplate: '{{retrieval.context}}\n{{web_search.context}}',
             temperature: 0.2,
           },
         },
@@ -62,13 +63,13 @@ const workflow: WorkflowDocument = {
         id: 'answer-1',
         type: 'answer',
         label: 'Answer',
-        config: { type: 'answer', data: { template: '{{llm-1.text}}' } },
+        config: { type: 'answer', data: { template: '{{llm.text}}' } },
       },
       {
         id: 'end-1',
         type: 'end',
         label: 'End',
-        config: { type: 'end', data: { outputVariable: 'answer-1.text' } },
+        config: { type: 'end', data: { outputVariable: 'answer.text' } },
       },
     ],
     edges: [
@@ -88,20 +89,7 @@ describe('WorkflowEngine', () => {
   });
 
   it('passes retrieval and web outputs into the LLM node', async () => {
-    const knowledgeBases = new Map<string, KnowledgeBase>([
-      [
-        'kb_1',
-        {
-          id: 'kb_1',
-          name: 'KB',
-          provider: 'openai',
-          vectorStoreId: 'vs_1',
-          status: 'ready',
-          createdAt: '',
-          updatedAt: '',
-        },
-      ],
-    ]);
+    const knowledgeBases = new Map<string, KnowledgeBase>();
     const vectorStoreService: VectorStoreService = {
       create: async () => ({ vectorStoreId: 'vs_1', status: 'ready' }),
       addFile: async () => undefined,

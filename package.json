@@ -17,6 +17,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@langfuse/openai": "^5.9.1",
+    "@langfuse/otel": "^5.9.1",
+    "@langfuse/tracing": "^5.9.1",
+    "@opentelemetry/sdk-node": "^0.220.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",

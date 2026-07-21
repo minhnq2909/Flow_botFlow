@@ -1,27 +1,66 @@
 import type {
   BotFlowEdge,
+  NodeType,
   NodeExecutionState,
   WorkflowDocument,
   WorkflowNodeData,
   WorkflowRunResult,
 } from '../src/features/flow-builder/flow-builder.types';
+import { traceNodeExecution, traceWorkflowRun } from './langfuseTelemetry';
 import type { KnowledgeBase, LlmService, VectorStoreService, WebSearchService } from './types';
 
 const now = () => new Date().toISOString();
+const aliasNodeTypes = new Set(['begin', 'retrieval', 'web_search', 'llm', 'answer', 'end']);
 
-const resolvePath = (source: Record<string, unknown>, path: string): unknown =>
-  path.split('.').reduce<unknown>((current, key) => {
+const resolvePath = (
+  source: Record<string, unknown>,
+  path: string,
+  aliases: Record<string, unknown> = {},
+): unknown => {
+  const [rootKey, ...rest] = path.split('.');
+  const root = aliases[rootKey] ?? source[rootKey];
+
+  if (root === undefined && aliasNodeTypes.has(rootKey)) {
+    return '';
+  }
+  if (root === undefined) {
+    throw new Error(`VARIABLE_NOT_FOUND: ${path}`);
+  }
+
+  return rest.reduce<unknown>((current, key) => {
     if (current && typeof current === 'object' && key in current) {
       return (current as Record<string, unknown>)[key];
     }
     throw new Error(`VARIABLE_NOT_FOUND: ${path}`);
-  }, source);
+  }, root);
+};
 
-export const resolveTemplate = (template: string, variables: Record<string, unknown>) =>
+export const resolveTemplate = (
+  template: string,
+  variables: Record<string, unknown>,
+  aliases: Record<string, unknown> = {},
+) =>
   template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key: string) => {
-    const value = resolvePath(variables, key.trim());
+    const value = resolvePath(variables, key.trim(), aliases);
     return typeof value === 'string' ? value : JSON.stringify(value);
   });
+
+const buildUpstreamAliases = (
+  node: WorkflowNodeData,
+  edges: BotFlowEdge[],
+  nodeById: Map<string, WorkflowNodeData>,
+  variables: Record<string, unknown>,
+) =>
+  edges
+    .filter((edge) => edge.target === node.id)
+    .reduce<Record<string, unknown>>((aliases, edge) => {
+      const sourceNode = nodeById.get(edge.source);
+      const sourceOutput = variables[edge.source];
+      if (sourceNode && sourceOutput !== undefined) {
+        aliases[sourceNode.type] = sourceOutput;
+      }
+      return aliases;
+    }, {});
 
 const topologicalSort = (nodes: WorkflowNodeData[], edges: BotFlowEdge[]) => {
   const ids = new Set(nodes.map((node) => node.id));
@@ -63,6 +102,27 @@ export class WorkflowEngine {
     workflowDocument: WorkflowDocument,
     inputs: Record<string, unknown>,
   ): Promise<WorkflowRunResult> {
+    return traceWorkflowRun(
+      {
+        input: inputs,
+        metadata: {
+          workflowId: workflowDocument.workflow.id,
+          workflowName: workflowDocument.workflow.name,
+          workflowVersion: workflowDocument.workflow.version,
+          schemaVersion: workflowDocument.schemaVersion,
+          nodeCount: workflowDocument.workflow.nodes.length,
+          environment: process.env.APP_ENV ?? 'development',
+          applicationVersion: process.env.npm_package_version,
+        },
+      },
+      () => this.runInternal(workflowDocument, inputs),
+    );
+  }
+
+  private async runInternal(
+    workflowDocument: WorkflowDocument,
+    inputs: Record<string, unknown>,
+  ): Promise<WorkflowRunResult> {
     const runId = `run_${Date.now().toString(36)}`;
     const traceId = `trace_${runId}`;
     const { workflow } = workflowDocument;
@@ -80,7 +140,28 @@ export class WorkflowEngine {
       nodeExecutions[nodeId] = { nodeId, status: 'running', startedAt };
 
       try {
-        const output = await this.executeNode(node, variables);
+        const aliases = buildUpstreamAliases(
+          node,
+          workflow.edges as BotFlowEdge[],
+          nodeById,
+          variables,
+        );
+        const output = await traceNodeExecution(
+          {
+            name: `node:${node.type}`,
+            type: getLangfuseObservationType(node.type),
+            input: getNodeTraceInput(node, variables, aliases),
+            metadata: {
+              runId,
+              workflowId: workflow.id,
+              workflowName: workflow.name,
+              nodeId: node.id,
+              nodeType: node.type,
+              nodeLabel: node.label,
+            },
+          },
+          () => this.executeNode(node, variables, aliases),
+        );
         variables[node.id] = output;
         nodeExecutions[nodeId] = {
           nodeId,
@@ -120,25 +201,36 @@ export class WorkflowEngine {
     };
   }
 
-  private async executeNode(node: WorkflowNodeData, variables: Record<string, unknown>) {
-    if (node.config.type === 'begin') return variables;
+  private async executeNode(
+    node: WorkflowNodeData,
+    variables: Record<string, unknown>,
+    aliases: Record<string, unknown>,
+  ) {
+    if (node.config.type === 'begin') return { ...variables };
 
     if (node.config.type === 'retrieval') {
       const config = node.config.data;
-      const kb = this.knowledgeBases.get(config.knowledgeBaseId);
-      if (!kb) throw new Error(`KNOWLEDGE_BASE_NOT_FOUND: ${config.knowledgeBaseId}`);
-      if (kb.status !== 'ready')
+      const configuredVectorStoreId =
+        config.vectorStoreId?.trim() || process.env.OPENAI_DEFAULT_VECTOR_STORE_ID?.trim();
+      const kb = configuredVectorStoreId ? null : this.knowledgeBases.get(config.knowledgeBaseId);
+      if (!configuredVectorStoreId && !kb)
+        throw new Error(`KNOWLEDGE_BASE_NOT_FOUND: ${config.knowledgeBaseId}`);
+      if (kb && kb.status !== 'ready')
         throw new Error(`KNOWLEDGE_BASE_NOT_READY: ${config.knowledgeBaseId}`);
-      const query = resolveTemplate(config.queryTemplate, variables);
+      const vectorStoreId = configuredVectorStoreId || kb?.vectorStoreId;
+      if (!vectorStoreId)
+        throw new Error('VECTOR_STORE_SEARCH_FAILED: Vector Store ID is missing.');
+      const query = resolveTemplate(config.queryTemplate, variables, aliases);
       const documents = await this.vectorStoreService.search({
-        vectorStoreId: kb.vectorStoreId,
+        vectorStoreId,
         query,
         maxResults: config.maxResults,
         scoreThreshold: config.scoreThreshold,
       });
       return {
         query,
-        knowledgeBaseId: kb.id,
+        knowledgeBaseId: kb?.id,
+        vectorStoreId,
         documents,
         context: documents
           .map(
@@ -151,7 +243,7 @@ export class WorkflowEngine {
 
     if (node.config.type === 'web_search') {
       const config = node.config.data;
-      const query = resolveTemplate(config.queryTemplate, variables);
+      const query = resolveTemplate(config.queryTemplate, variables, aliases);
       if (!query.trim()) throw new Error('WEB_SEARCH_EMPTY_QUERY');
       return this.webSearchService.search({
         model: config.modelId,
@@ -167,16 +259,75 @@ export class WorkflowEngine {
       return this.llmService.generate({
         model: config.modelId,
         systemPrompt: config.systemPrompt,
-        userPrompt: resolveTemplate(config.userPromptTemplate, variables),
+        userPrompt: resolveTemplate(config.userPromptTemplate, variables, aliases),
         temperature: config.temperature,
         maxOutputTokens: config.maxOutputTokens,
       });
     }
 
     if (node.config.type === 'answer') {
-      return { text: resolveTemplate(node.config.data.template, variables) };
+      return { text: resolveTemplate(node.config.data.template, variables, aliases) };
     }
 
-    return { output: resolvePath(variables, node.config.data.outputVariable) };
+    return { output: resolvePath(variables, node.config.data.outputVariable, aliases) };
   }
 }
+
+const getLangfuseObservationType = (nodeType: NodeType) => {
+  if (nodeType === 'retrieval') return 'retriever' as const;
+  if (nodeType === 'web_search' || nodeType === 'llm') return 'generation' as const;
+  return 'span' as const;
+};
+
+const getNodeTraceInput = (
+  node: WorkflowNodeData,
+  variables: Record<string, unknown>,
+  aliases: Record<string, unknown>,
+) => {
+  if (node.config.type === 'begin') return variables;
+  if (node.config.type === 'retrieval') {
+    return {
+      queryTemplate: node.config.data.queryTemplate,
+      resolvedQuery: safeResolveTemplate(node.config.data.queryTemplate, variables, aliases),
+      maxResults: node.config.data.maxResults,
+      scoreThreshold: node.config.data.scoreThreshold,
+      hasDirectVectorStoreId: Boolean(node.config.data.vectorStoreId),
+      hasDefaultVectorStoreId: Boolean(process.env.OPENAI_DEFAULT_VECTOR_STORE_ID),
+      knowledgeBaseId: node.config.data.knowledgeBaseId || undefined,
+    };
+  }
+  if (node.config.type === 'web_search') {
+    return {
+      model: node.config.data.modelId,
+      queryTemplate: node.config.data.queryTemplate,
+      resolvedQuery: safeResolveTemplate(node.config.data.queryTemplate, variables, aliases),
+      maxSources: node.config.data.maxSources,
+      allowedDomains: node.config.data.allowedDomains,
+    };
+  }
+  if (node.config.type === 'llm') {
+    return {
+      model: node.config.data.modelId,
+      temperature: node.config.data.temperature,
+      maxOutputTokens: node.config.data.maxOutputTokens,
+      systemPrompt: node.config.data.systemPrompt,
+      userPrompt: safeResolveTemplate(node.config.data.userPromptTemplate, variables, aliases),
+    };
+  }
+  if (node.config.type === 'answer') {
+    return { template: node.config.data.template };
+  }
+  return { outputVariable: node.config.data.outputVariable };
+};
+
+const safeResolveTemplate = (
+  template: string,
+  variables: Record<string, unknown>,
+  aliases: Record<string, unknown>,
+) => {
+  try {
+    return resolveTemplate(template, variables, aliases);
+  } catch (error) {
+    return error instanceof Error ? error.message : 'Template resolution failed.';
+  }
+};

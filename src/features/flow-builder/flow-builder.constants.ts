@@ -88,6 +88,7 @@ export const createDefaultConfig = (type: NodeType): BotNodeConfig => {
       data: {
         provider: 'openai_vector_store',
         knowledgeBaseId: '',
+        vectorStoreId: '',
         queryTemplate: '{{query}}',
         maxResults: 5,
         scoreThreshold: 0.4,
@@ -112,7 +113,7 @@ export const createDefaultConfig = (type: NodeType): BotNodeConfig => {
         systemPrompt:
           'Use the supplied context. Preserve source attribution and do not invent sources.',
         userPromptTemplate:
-          'Question:\n{{query}}\n\nContext:\n{{retrieval-1.context}}\n{{web-search-1.context}}',
+          'Question:\n{{query}}\n\nContext:\n{{retrieval.context}}\n{{web_search.context}}',
         temperature: 0.2,
         maxOutputTokens: 700,
       },
@@ -120,13 +121,13 @@ export const createDefaultConfig = (type: NodeType): BotNodeConfig => {
     answer: {
       type: 'answer',
       data: {
-        template: '{{llm-1.text}}',
+        template: '{{llm.text}}',
       },
     },
     end: {
       type: 'end',
       data: {
-        outputVariable: 'answer-1.text',
+        outputVariable: 'answer.text',
       },
     },
   };
